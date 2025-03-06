@@ -176,7 +176,7 @@ Api.handle_response = vim.schedule_wrap(function(response, exit_code, cb)
         cb("...")
       end
     else
-      local response_text = json.choices[1].text
+      local response_text = json.choices[1].text or json.choices[1].thinking
       if type(response_text) == "string" and response_text ~= "" then
         cb(response_text, json.usage)
       else
