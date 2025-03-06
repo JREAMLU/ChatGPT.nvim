@@ -46,6 +46,8 @@ function Api.chat_completions(custom_params, cb, should_stop)
       end
     end
 
+    local is_thinking_phase = false
+
     Api.exec(
       "curl",
       args,
@@ -57,6 +59,7 @@ function Api.chat_completions(custom_params, cb, should_stop)
             return
           end
         end
+
         for line in chunk:gmatch("[^\n]+") do
           local raw_json = string.gsub(line, "^data: ", "")
           if raw_json == "[DONE]" then
@@ -69,16 +72,31 @@ function Api.chat_completions(custom_params, cb, should_stop)
               },
             })
             if ok and json ~= nil then
-              if
-                json
-                and json.choices
-                and json.choices[1]
-                and json.choices[1].delta
-                and json.choices[1].delta.content
-              then
-                cb(json.choices[1].delta.content, state)
-                raw_chunks = raw_chunks .. json.choices[1].delta.content
-                state = "CONTINUE"
+              if json.choices and json.choices[1] then
+                local delta = json.choices[1].delta or {}
+                local output_text = nil
+
+                if delta.reasoning_content ~= nil then
+                  if is_thinking_phase == false then
+                    output_text = "# [Thinking]\n" .. delta.reasoning_content
+                    is_thinking_phase = true
+                  else
+                    output_text = delta.reasoning_content
+                  end
+                elseif delta.content ~= nil then
+                    if is_thinking_phase == true then
+                      output_text = "\n # [ANSWER]\n" .. (delta.content or "")
+                      is_thinking_phase = false
+                    else
+                      output_text = delta.content or ""
+                    end
+                end
+
+                if output_text and output_text ~= "" then
+                  cb(output_text, state)
+                  raw_chunks = raw_chunks .. output_text
+                  state = "CONTINUE"
+                end
               end
             end
           end
