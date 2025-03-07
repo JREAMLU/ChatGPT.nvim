@@ -78,7 +78,7 @@ function Api.chat_completions(custom_params, cb, should_stop)
 
                 if delta.reasoning_content ~= nil then
                   if is_thinking_phase == false then
-                    output_text = "# [Thinking]\n" .. delta.reasoning_content
+                    output_text = "# [Thinking]\n> " .. delta.reasoning_content
                     is_thinking_phase = true
                   else
                     output_text = delta.reasoning_content
